@@ -1,26 +1,88 @@
-import React from "react";
-import {BrowserRouter as Router, Routes, Route} from "react-router-dom";
+import {BrowserRouter as Router, Routes, Route} from 'react-router-dom';
+import React from 'react';
 import './index.css';
-import Menu from "./components/Menu";
-import HomePage from "./components/HomePage";
-import DriftPage from "./components/DriftPage";
-import ForzaPage from "./components/ForzaPage";
-import TimeAttackPage from "./components/TimeAttackPage";
+import initFetch from './functions/initFetch';
+import HomePage from './components/Pages/HomePage/HomePage';
+import CreateNotePage from './components/Pages/CreateNotePage/CreateNotePage';
+import ViewNotePage from './components/Pages/ViewNotePage/ViewNotePage';
+import withParams from './hocs/withParams';
+const { get, post, del } = initFetch('https://example.com/answer', { answer: 42 });
+const ViewNotePageWithParams = withParams(ViewNotePage);
 
-export default function App() {
-  return (
-    <Router >
-      <div>
-        <Menu />
-        <div className="page">
-        <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/drift" element={<DriftPage />} />
-            <Route path="/timeattack" element={<TimeAttackPage />} />
-            <Route path="/forza" element={<ForzaPage />} />
-          </Routes>
+class App extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      notes: [],
+    }
+    this.handleFormSubmit = this.handleFormSubmit.bind(this);
+    this.handleDeleteClick = this.handleDeleteClick.bind(this);
+  }
+
+  componentDidMount() {
+    get('notes/')
+      .then((data) => {
+        this.setState({ notes: data });
+      })
+      .catch((error) => console.log("Could not load notes", error));
+  }
+
+  handleFormSubmit({ id, text }) {
+    post('notes/', { id, text })
+      .then((data) => {
+        this.setState({ notes: data });
+      })
+      .catch((error) => console.log("Could not upload the note", error));
+  }
+
+  handleDeleteClick(id) {
+    del(`notes/${id}`)
+      .then((data) => {
+        this.setState({ notes: data });
+      })
+      .catch((error) => console.log("Could not delete the note", error));
+  }
+
+  render() {
+    return (
+      <Router basename={process.env.PUBLIC_URL}>
+        <div className="App">
+          <div className="App-wrapper">
+            <main>
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <HomePage
+                      notes={this.state.notes}
+                    />
+                  }
+                />
+                <Route
+                  path="/notes/new"
+                  element={
+                    <CreateNotePage
+                      onFormSubmit={this.handleFormSubmit}
+                    />
+                  }
+                />
+                <Route
+                  path="/notes/:id"
+                  element={
+                    <ViewNotePageWithParams
+                      onFormSubmit={this.handleFormSubmit}
+                      onDeleteClick={this.handleDeleteClick}
+                      get={get}
+                    />
+                  }
+                />
+              </Routes>
+            </main>
+          </div>
         </div>
-      </div>
-    </Router>
-  );
+      </Router>
+    );
+  }
 }
+
+export default App;
